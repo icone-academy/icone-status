@@ -4,12 +4,12 @@
 # ============================================================
 
 # ⚠️  Preencha com o usuário/org do GitHub onde este repo ficará
-owner: GITHUB_ORG
+owner: meneeses
 repo: icone-status
 
 # Assignees para notificações de incidentes (GitHub Issues)
 assignees:
-  - GITHUB_ORG
+  - meneeses
 
 # ─── Serviços monitorados ────────────────────────────────────
 sites:

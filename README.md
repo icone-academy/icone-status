@@ -19,10 +19,10 @@ Crie um repositório **público** chamado `icone-status` na sua organização/us
 Abra o arquivo `.upptime.yml` e substitua `GITHUB_ORG` pelo seu usuário ou org do GitHub:
 
 ```yaml
-owner: SEU_USUARIO_AQUI
+owner: meneeses
 repo: icone-status
 assignees:
-  - SEU_USUARIO_AQUI
+  - meneeses
 ```
 
 ### 3. Criar o Personal Access Token (PAT)
