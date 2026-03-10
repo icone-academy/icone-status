@@ -29,3 +29,14 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
         with:
           command: static-site
+
+      - name: Debug — listar arquivos gerados
+        run: |
+          echo "=== raiz ==="
+          ls -la
+          echo "=== _site ou dist ou public ==="
+          ls -la _site 2>/dev/null || echo "_site nao existe"
+          ls -la dist 2>/dev/null || echo "dist nao existe"
+          ls -la public 2>/dev/null || echo "public nao existe"
+          echo "=== branches remotas ==="
+          git branch -r || true
