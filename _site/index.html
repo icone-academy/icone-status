@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="300">
+  <title>Status — Ícone Academy</title>
+  <meta name="description" content="Acompanhe o status em tempo real dos serviços da Ícone Academy.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #16181f;
+      --surface2: #1e2029;
+      --border: #2a2d38;
+      --text: #e8eaf0;
+      --text-muted: #6b7280;
+      --text-dim: #9ca3af;
+      --up: #22c55e;
+      --up-bg: #052e16;
+      --up-text: #86efac;
+      --down: #ef4444;
+      --down-bg: #450a0a;
+      --down-text: #fca5a5;
+      --degraded: #f59e0b;
+      --degraded-bg: #451a03;
+      --degraded-text: #fcd34d;
+      --accent: #6366f1;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+    }
+    .header-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .logo-img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+    .logo-text {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -.03em;
+    }
+    .brand-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+    .header-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .header-link:hover { color: var(--text); }
+
+    /* ── Layout ── */
+    .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Overall banner ── */
+    .overall {
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 40px;
+      border: 1px solid var(--border);
+    }
+    .overall.up       { background: linear-gradient(135deg, #052e16 0%, #0a1a2e 100%); border-color: #166534; }
+    .overall.down     { background: linear-gradient(135deg, #450a0a 0%, #1a0a14 100%); border-color: #7f1d1d; }
+    .overall.degraded { background: linear-gradient(135deg, #451a03 0%, #1a1408 100%); border-color: #78350f; }
+    .overall.unknown  { background: var(--surface); }
+
+    .overall-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; flex-shrink: 0;
+    }
+    .overall.up       .overall-icon { background: var(--up);       color: #fff; }
+    .overall.down     .overall-icon { background: var(--down);     color: #fff; }
+    .overall.degraded .overall-icon { background: var(--degraded); color: #fff; }
+    .overall.unknown  .overall-icon { background: var(--surface2); color: var(--text-muted); }
+
+    .overall-body { flex: 1; }
+    .overall-title { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+    .overall-sub { font-size: 13px; color: var(--text-dim); }
+
+    .overall-pulse {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      animation: pulse 2s infinite;
+    }
+    .overall.up       .overall-pulse { background: var(--up); box-shadow: 0 0 0 0 rgba(34,197,94,.4); }
+    .overall.down     .overall-pulse { background: var(--down); box-shadow: 0 0 0 0 rgba(239,68,68,.4); animation: none; }
+    .overall.degraded .overall-pulse { background: var(--degraded); }
+    .overall.unknown  .overall-pulse { background: var(--text-muted); animation: none; }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.4); }
+      70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+
+    /* ── Section ── */
+    .section { margin-bottom: 40px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Service card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 10px;
+      transition: border-color .15s;
+    }
+    .card:hover { border-color: #3a3d4a; }
+    .card-empty {
+      color: var(--text-muted);
+      font-size: 14px;
+      text-align: center;
+      padding: 32px;
+    }
+    .card-header { margin-bottom: 14px; }
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .card-name { font-weight: 600; font-size: 15px; }
+    .card-url { font-size: 12px; color: var(--text-muted); text-decoration: none; }
+    .card-url:hover { color: var(--text-dim); text-decoration: underline; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 9px; border-radius: 99px;
+      font-size: 12px; font-weight: 500; white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    .badge-up       { background: var(--up-bg);       color: var(--up-text); }
+    .badge-up::before { background: var(--up); }
+    .badge-down     { background: var(--down-bg);     color: var(--down-text); }
+    .badge-down::before { background: var(--down); }
+    .badge-degraded { background: var(--degraded-bg); color: var(--degraded-text); }
+    .badge-degraded::before { background: var(--degraded); }
+
+    /* ── Stats row ── */
+    .card-stats {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .stat { display: flex; flex-direction: column; }
+    .stat-val { font-size: 14px; font-weight: 600; color: var(--text); }
+    .stat-key { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    /* ── Sparkline ── */
+    .sparkline-wrap { }
+    .sparkline {
+      display: flex;
+      gap: 2px;
+      height: 28px;
+      align-items: flex-end;
+    }
+    .bar {
+      flex: 1;
+      height: 100%;
+      border-radius: 2px;
+      min-width: 2px;
+      transition: opacity .15s;
+      cursor: default;
+    }
+    .bar:hover { opacity: .7; }
+    .bar-up       { background: #16a34a; }
+    .bar-down     { background: var(--down); }
+    .bar-degraded { background: var(--degraded); }
+    .sparkline-legend {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── Incident ── */
+    .incident {
+      background: #1f0a0a;
+      border: 1px solid #7f1d1d;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 10px;
+    }
+    .incident-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 6px; font-size: 14px;
+    }
+    .incident-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--down); flex-shrink: 0;
+      animation: pulse-red 1.5s infinite;
+    }
+    @keyframes pulse-red {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+      50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    }
+    .incident-time { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+    .incident-desc { font-size: 13px; color: var(--text-dim); padding-left: 18px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-dim); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .footer-dot { margin: 0 8px; opacity: .4; }
+
+    /* ── Responsive ── */
+    @media (max-width: 560px) {
+      .card-title-row { flex-wrap: wrap; }
+      .card-stats { gap: 14px; }
+      .page { padding: 24px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="https://icone.academy" class="header-brand" target="_blank" rel="noopener">
+      <span class="logo-text">Ícone</span>
+      <span class="logo-text">Ícone Academy</span>
+    </a>
+    <a href="https://icone.academy" class="header-link" target="_blank" rel="noopener">
+      Ir para a plataforma →
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="page">
+
+    <div class="overall up">
+      <div class="overall-icon">✓</div>
+      <div class="overall-body">
+        <div class="overall-title">Todos os sistemas operacionais</div>
+        <div class="overall-sub">Todos os serviços estão funcionando normalmente.</div>
+      </div>
+      <div class="overall-pulse"></div>
+    </div>
+
+    
+
+    <section class="section">
+      <p class="section-title">Serviços</p>
+      
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-row">
+        <span class="card-name">Plataforma (App)</span>
+        <span class="badge badge-up">Operacional</span>
+      </div>
+      <a class="card-url" href="https://icone.academy" target="_blank" rel="noopener">https://icone.academy</a>
+    </div>
+    <div class="card-stats"><div class="stat"><span class="stat-val">100.00%</span><span class="stat-key">Hoje</span></div>
+<div class="stat"><span class="stat-val">100.00%</span><span class="stat-key">7 dias</span></div>
+<div class="stat"><span class="stat-val">100.00%</span><span class="stat-key">30 dias</span></div>
+<div class="stat"><span class="stat-val">643 ms</span><span class="stat-key">Resposta</span></div></div>
+    <div class="sparkline-wrap">
+      <div class="sparkline"><div class="bar bar-up" title="89 dias atrás"></div><div class="bar bar-up" title="88 dias atrás"></div><div class="bar bar-up" title="87 dias atrás"></div><div class="bar bar-up" title="86 dias atrás"></div><div class="bar bar-up" title="85 dias atrás"></div><div class="bar bar-up" title="84 dias atrás"></div><div class="bar bar-up" title="83 dias atrás"></div><div class="bar bar-up" title="82 dias atrás"></div><div class="bar bar-up" title="81 dias atrás"></div><div class="bar bar-up" title="80 dias atrás"></div><div class="bar bar-up" title="79 dias atrás"></div><div class="bar bar-up" title="78 dias atrás"></div><div class="bar bar-up" title="77 dias atrás"></div><div class="bar bar-up" title="76 dias atrás"></div><div class="bar bar-up" title="75 dias atrás"></div><div class="bar bar-up" title="74 dias atrás"></div><div class="bar bar-up" title="73 dias atrás"></div><div class="bar bar-up" title="72 dias atrás"></div><div class="bar bar-up" title="71 dias atrás"></div><div class="bar bar-up" title="70 dias atrás"></div><div class="bar bar-up" title="69 dias atrás"></div><div class="bar bar-up" title="68 dias atrás"></div><div class="bar bar-up" title="67 dias atrás"></div><div class="bar bar-up" title="66 dias atrás"></div><div class="bar bar-up" title="65 dias atrás"></div><div class="bar bar-up" title="64 dias atrás"></div><div class="bar bar-up" title="63 dias atrás"></div><div class="bar bar-up" title="62 dias atrás"></div><div class="bar bar-up" title="61 dias atrás"></div><div class="bar bar-up" title="60 dias atrás"></div><div class="bar bar-up" title="59 dias atrás"></div><div class="bar bar-up" title="58 dias atrás"></div><div class="bar bar-up" title="57 dias atrás"></div><div class="bar bar-up" title="56 dias atrás"></div><div class="bar bar-up" title="55 dias atrás"></div><div class="bar bar-up" title="54 dias atrás"></div><div class="bar bar-up" title="53 dias atrás"></div><div class="bar bar-up" title="52 dias atrás"></div><div class="bar bar-up" title="51 dias atrás"></div><div class="bar bar-up" title="50 dias atrás"></div><div class="bar bar-up" title="49 dias atrás"></div><div class="bar bar-up" title="48 dias atrás"></div><div class="bar bar-up" title="47 dias atrás"></div><div class="bar bar-up" title="46 dias atrás"></div><div class="bar bar-up" title="45 dias atrás"></div><div class="bar bar-up" title="44 dias atrás"></div><div class="bar bar-up" title="43 dias atrás"></div><div class="bar bar-up" title="42 dias atrás"></div><div class="bar bar-up" title="41 dias atrás"></div><div class="bar bar-up" title="40 dias atrás"></div><div class="bar bar-up" title="39 dias atrás"></div><div class="bar bar-up" title="38 dias atrás"></div><div class="bar bar-up" title="37 dias atrás"></div><div class="bar bar-up" title="36 dias atrás"></div><div class="bar bar-up" title="35 dias atrás"></div><div class="bar bar-up" title="34 dias atrás"></div><div class="bar bar-up" title="33 dias atrás"></div><div class="bar bar-up" title="32 dias atrás"></div><div class="bar bar-up" title="31 dias atrás"></div><div class="bar bar-up" title="30 dias atrás"></div><div class="bar bar-up" title="29 dias atrás"></div><div class="bar bar-up" title="28 dias atrás"></div><div class="bar bar-up" title="27 dias atrás"></div><div class="bar bar-up" title="26 dias atrás"></div><div class="bar bar-up" title="25 dias atrás"></div><div class="bar bar-up" title="24 dias atrás"></div><div class="bar bar-up" title="23 dias atrás"></div><div class="bar bar-up" title="22 dias atrás"></div><div class="bar bar-up" title="21 dias atrás"></div><div class="bar bar-up" title="20 dias atrás"></div><div class="bar bar-up" title="19 dias atrás"></div><div class="bar bar-up" title="18 dias atrás"></div><div class="bar bar-up" title="17 dias atrás"></div><div class="bar bar-up" title="16 dias atrás"></div><div class="bar bar-up" title="15 dias atrás"></div><div class="bar bar-up" title="14 dias atrás"></div><div class="bar bar-up" title="13 dias atrás"></div><div class="bar bar-up" title="12 dias atrás"></div><div class="bar bar-up" title="11 dias atrás"></div><div class="bar bar-up" title="10 dias atrás"></div><div class="bar bar-up" title="9 dias atrás"></div><div class="bar bar-up" title="8 dias atrás"></div><div class="bar bar-up" title="7 dias atrás"></div><div class="bar bar-up" title="6 dias atrás"></div><div class="bar bar-up" title="5 dias atrás"></div><div class="bar bar-up" title="4 dias atrás"></div><div class="bar bar-up" title="3 dias atrás"></div><div class="bar bar-up" title="2 dias atrás"></div><div class="bar bar-up" title="1 dias atrás"></div><div class="bar bar-up" title="Hoje"></div></div>
+      <div class="sparkline-legend">
+        <span>90 dias atrás</span>
+        <span>Hoje</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-row">
+        <span class="card-name">API — Liveness</span>
+        <span class="badge badge-up">Operacional</span>
+      </div>
+      <a class="card-url" href="https://api.icone.academy/health/live" target="_blank" rel="noopener">https://api.icone.academy/health/live</a>
+    </div>
+    <div class="card-stats"><div class="stat"><span class="stat-val">0.00%</span><span class="stat-key">Hoje</span></div>
+<div class="stat"><span class="stat-val">0.00%</span><span class="stat-key">7 dias</span></div>
+<div class="stat"><span class="stat-val">0.00%</span><span class="stat-key">30 dias</span></div>
+<div class="stat"><span class="stat-val">295 ms</span><span class="stat-key">Resposta</span></div></div>
+    <div class="sparkline-wrap">
+      <div class="sparkline"><div class="bar bar-up" title="89 dias atrás"></div><div class="bar bar-up" title="88 dias atrás"></div><div class="bar bar-up" title="87 dias atrás"></div><div class="bar bar-up" title="86 dias atrás"></div><div class="bar bar-up" title="85 dias atrás"></div><div class="bar bar-up" title="84 dias atrás"></div><div class="bar bar-up" title="83 dias atrás"></div><div class="bar bar-up" title="82 dias atrás"></div><div class="bar bar-up" title="81 dias atrás"></div><div class="bar bar-up" title="80 dias atrás"></div><div class="bar bar-up" title="79 dias atrás"></div><div class="bar bar-up" title="78 dias atrás"></div><div class="bar bar-up" title="77 dias atrás"></div><div class="bar bar-up" title="76 dias atrás"></div><div class="bar bar-up" title="75 dias atrás"></div><div class="bar bar-up" title="74 dias atrás"></div><div class="bar bar-up" title="73 dias atrás"></div><div class="bar bar-up" title="72 dias atrás"></div><div class="bar bar-up" title="71 dias atrás"></div><div class="bar bar-up" title="70 dias atrás"></div><div class="bar bar-up" title="69 dias atrás"></div><div class="bar bar-up" title="68 dias atrás"></div><div class="bar bar-up" title="67 dias atrás"></div><div class="bar bar-up" title="66 dias atrás"></div><div class="bar bar-up" title="65 dias atrás"></div><div class="bar bar-up" title="64 dias atrás"></div><div class="bar bar-up" title="63 dias atrás"></div><div class="bar bar-up" title="62 dias atrás"></div><div class="bar bar-up" title="61 dias atrás"></div><div class="bar bar-up" title="60 dias atrás"></div><div class="bar bar-up" title="59 dias atrás"></div><div class="bar bar-up" title="58 dias atrás"></div><div class="bar bar-up" title="57 dias atrás"></div><div class="bar bar-up" title="56 dias atrás"></div><div class="bar bar-up" title="55 dias atrás"></div><div class="bar bar-up" title="54 dias atrás"></div><div class="bar bar-up" title="53 dias atrás"></div><div class="bar bar-up" title="52 dias atrás"></div><div class="bar bar-up" title="51 dias atrás"></div><div class="bar bar-up" title="50 dias atrás"></div><div class="bar bar-up" title="49 dias atrás"></div><div class="bar bar-up" title="48 dias atrás"></div><div class="bar bar-up" title="47 dias atrás"></div><div class="bar bar-up" title="46 dias atrás"></div><div class="bar bar-up" title="45 dias atrás"></div><div class="bar bar-up" title="44 dias atrás"></div><div class="bar bar-up" title="43 dias atrás"></div><div class="bar bar-up" title="42 dias atrás"></div><div class="bar bar-up" title="41 dias atrás"></div><div class="bar bar-up" title="40 dias atrás"></div><div class="bar bar-up" title="39 dias atrás"></div><div class="bar bar-up" title="38 dias atrás"></div><div class="bar bar-up" title="37 dias atrás"></div><div class="bar bar-up" title="36 dias atrás"></div><div class="bar bar-up" title="35 dias atrás"></div><div class="bar bar-up" title="34 dias atrás"></div><div class="bar bar-up" title="33 dias atrás"></div><div class="bar bar-up" title="32 dias atrás"></div><div class="bar bar-up" title="31 dias atrás"></div><div class="bar bar-up" title="30 dias atrás"></div><div class="bar bar-up" title="29 dias atrás"></div><div class="bar bar-up" title="28 dias atrás"></div><div class="bar bar-up" title="27 dias atrás"></div><div class="bar bar-up" title="26 dias atrás"></div><div class="bar bar-up" title="25 dias atrás"></div><div class="bar bar-up" title="24 dias atrás"></div><div class="bar bar-up" title="23 dias atrás"></div><div class="bar bar-up" title="22 dias atrás"></div><div class="bar bar-up" title="21 dias atrás"></div><div class="bar bar-up" title="20 dias atrás"></div><div class="bar bar-up" title="19 dias atrás"></div><div class="bar bar-up" title="18 dias atrás"></div><div class="bar bar-up" title="17 dias atrás"></div><div class="bar bar-up" title="16 dias atrás"></div><div class="bar bar-up" title="15 dias atrás"></div><div class="bar bar-up" title="14 dias atrás"></div><div class="bar bar-up" title="13 dias atrás"></div><div class="bar bar-up" title="12 dias atrás"></div><div class="bar bar-up" title="11 dias atrás"></div><div class="bar bar-up" title="10 dias atrás"></div><div class="bar bar-up" title="9 dias atrás"></div><div class="bar bar-up" title="8 dias atrás"></div><div class="bar bar-up" title="7 dias atrás"></div><div class="bar bar-up" title="6 dias atrás"></div><div class="bar bar-up" title="5 dias atrás"></div><div class="bar bar-up" title="4 dias atrás"></div><div class="bar bar-up" title="3 dias atrás"></div><div class="bar bar-up" title="2 dias atrás"></div><div class="bar bar-up" title="1 dias atrás"></div><div class="bar bar-up" title="Hoje"></div></div>
+      <div class="sparkline-legend">
+        <span>90 dias atrás</span>
+        <span>Hoje</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-row">
+        <span class="card-name">API — Health Completo</span>
+        <span class="badge badge-up">Operacional</span>
+      </div>
+      <a class="card-url" href="https://api.icone.academy/health" target="_blank" rel="noopener">https://api.icone.academy/health</a>
+    </div>
+    <div class="card-stats"><div class="stat"><span class="stat-val">100.00%</span><span class="stat-key">Hoje</span></div>
+<div class="stat"><span class="stat-val">100.00%</span><span class="stat-key">7 dias</span></div>
+<div class="stat"><span class="stat-val">100.00%</span><span class="stat-key">30 dias</span></div>
+<div class="stat"><span class="stat-val">64 ms</span><span class="stat-key">Resposta</span></div></div>
+    <div class="sparkline-wrap">
+      <div class="sparkline"><div class="bar bar-up" title="89 dias atrás"></div><div class="bar bar-up" title="88 dias atrás"></div><div class="bar bar-up" title="87 dias atrás"></div><div class="bar bar-up" title="86 dias atrás"></div><div class="bar bar-up" title="85 dias atrás"></div><div class="bar bar-up" title="84 dias atrás"></div><div class="bar bar-up" title="83 dias atrás"></div><div class="bar bar-up" title="82 dias atrás"></div><div class="bar bar-up" title="81 dias atrás"></div><div class="bar bar-up" title="80 dias atrás"></div><div class="bar bar-up" title="79 dias atrás"></div><div class="bar bar-up" title="78 dias atrás"></div><div class="bar bar-up" title="77 dias atrás"></div><div class="bar bar-up" title="76 dias atrás"></div><div class="bar bar-up" title="75 dias atrás"></div><div class="bar bar-up" title="74 dias atrás"></div><div class="bar bar-up" title="73 dias atrás"></div><div class="bar bar-up" title="72 dias atrás"></div><div class="bar bar-up" title="71 dias atrás"></div><div class="bar bar-up" title="70 dias atrás"></div><div class="bar bar-up" title="69 dias atrás"></div><div class="bar bar-up" title="68 dias atrás"></div><div class="bar bar-up" title="67 dias atrás"></div><div class="bar bar-up" title="66 dias atrás"></div><div class="bar bar-up" title="65 dias atrás"></div><div class="bar bar-up" title="64 dias atrás"></div><div class="bar bar-up" title="63 dias atrás"></div><div class="bar bar-up" title="62 dias atrás"></div><div class="bar bar-up" title="61 dias atrás"></div><div class="bar bar-up" title="60 dias atrás"></div><div class="bar bar-up" title="59 dias atrás"></div><div class="bar bar-up" title="58 dias atrás"></div><div class="bar bar-up" title="57 dias atrás"></div><div class="bar bar-up" title="56 dias atrás"></div><div class="bar bar-up" title="55 dias atrás"></div><div class="bar bar-up" title="54 dias atrás"></div><div class="bar bar-up" title="53 dias atrás"></div><div class="bar bar-up" title="52 dias atrás"></div><div class="bar bar-up" title="51 dias atrás"></div><div class="bar bar-up" title="50 dias atrás"></div><div class="bar bar-up" title="49 dias atrás"></div><div class="bar bar-up" title="48 dias atrás"></div><div class="bar bar-up" title="47 dias atrás"></div><div class="bar bar-up" title="46 dias atrás"></div><div class="bar bar-up" title="45 dias atrás"></div><div class="bar bar-up" title="44 dias atrás"></div><div class="bar bar-up" title="43 dias atrás"></div><div class="bar bar-up" title="42 dias atrás"></div><div class="bar bar-up" title="41 dias atrás"></div><div class="bar bar-up" title="40 dias atrás"></div><div class="bar bar-up" title="39 dias atrás"></div><div class="bar bar-up" title="38 dias atrás"></div><div class="bar bar-up" title="37 dias atrás"></div><div class="bar bar-up" title="36 dias atrás"></div><div class="bar bar-up" title="35 dias atrás"></div><div class="bar bar-up" title="34 dias atrás"></div><div class="bar bar-up" title="33 dias atrás"></div><div class="bar bar-up" title="32 dias atrás"></div><div class="bar bar-up" title="31 dias atrás"></div><div class="bar bar-up" title="30 dias atrás"></div><div class="bar bar-up" title="29 dias atrás"></div><div class="bar bar-up" title="28 dias atrás"></div><div class="bar bar-up" title="27 dias atrás"></div><div class="bar bar-up" title="26 dias atrás"></div><div class="bar bar-up" title="25 dias atrás"></div><div class="bar bar-up" title="24 dias atrás"></div><div class="bar bar-up" title="23 dias atrás"></div><div class="bar bar-up" title="22 dias atrás"></div><div class="bar bar-up" title="21 dias atrás"></div><div class="bar bar-up" title="20 dias atrás"></div><div class="bar bar-up" title="19 dias atrás"></div><div class="bar bar-up" title="18 dias atrás"></div><div class="bar bar-up" title="17 dias atrás"></div><div class="bar bar-up" title="16 dias atrás"></div><div class="bar bar-up" title="15 dias atrás"></div><div class="bar bar-up" title="14 dias atrás"></div><div class="bar bar-up" title="13 dias atrás"></div><div class="bar bar-up" title="12 dias atrás"></div><div class="bar bar-up" title="11 dias atrás"></div><div class="bar bar-up" title="10 dias atrás"></div><div class="bar bar-up" title="9 dias atrás"></div><div class="bar bar-up" title="8 dias atrás"></div><div class="bar bar-up" title="7 dias atrás"></div><div class="bar bar-up" title="6 dias atrás"></div><div class="bar bar-up" title="5 dias atrás"></div><div class="bar bar-up" title="4 dias atrás"></div><div class="bar bar-up" title="3 dias atrás"></div><div class="bar bar-up" title="2 dias atrás"></div><div class="bar bar-up" title="1 dias atrás"></div><div class="bar bar-up" title="Hoje"></div></div>
+      <div class="sparkline-legend">
+        <span>90 dias atrás</span>
+        <span>Hoje</span>
+      </div>
+    </div>
+  </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  Atualizado em 10/03/2026, 15:23 (BRT)
+  <span class="footer-dot">·</span>
+  Monitorado com <a href="https://upptime.js.org" target="_blank" rel="noopener">Upptime</a>
+  <span class="footer-dot">·</span>
+  <a href="https://icone.academy" target="_blank" rel="noopener">Ícone Academy</a>
+</footer>
+
+</body>
+</html>
