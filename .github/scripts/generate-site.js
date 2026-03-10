@@ -1,366 +1,402 @@
-// generate-site.js — Status page generator (light mode, real backend data)
+// generate-site.js — Cursor-style status page
 const fs   = require('fs');
 const path = require('path');
 
-// ── Upptime summary ────────────────────────────────────────────────────────────
+// ── Load data ─────────────────────────────────────────────────────────────────
 let sites = [];
 try {
-  const raw = fs.readFileSync('history/summary.json', 'utf8');
+  const raw  = fs.readFileSync('history/summary.json', 'utf8');
   const data = JSON.parse(raw);
-  sites = Array.isArray(data) ? data : (data.sites || []);
+  sites = Array.isArray(data) ? data : (data.sites || data.value || []);
+  // Fix encoding issues in names (â€" → —)
+  sites = sites.map(s => ({ ...s, name: s.name.replace(/â€"/g, '—') }));
 } catch (_) {}
 
-// ── Real backend health data ───────────────────────────────────────────────────
-let healthFull = null;   // parsed JSON from /health
+let healthFull = null;
 try {
   const raw = fs.readFileSync('health-full.json', 'utf8');
   const obj = JSON.parse(raw);
-  if (obj && obj.status) healthFull = obj;   // has real data
+  if (obj && obj.status && obj.status !== '{}') healthFull = obj;
 } catch (_) {}
 
-// ── History parser (sparklines) ───────────────────────────────────────────────
+// ── Logo ──────────────────────────────────────────────────────────────────────
+let logoDataUrl = '';
+try {
+  const buf  = fs.readFileSync(path.join(__dirname, 'logo.png'));
+  logoDataUrl = `data:image/png;base64,${buf.toString('base64')}`;
+} catch (_) {}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function slugify(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function buildBars(slug, total = 60) {
-  const file = `history/${slug}.yml`;
-  const bars = Array(total).fill('up');
+// Build 90-day map from dailyMinutesDown object in summary.json
+function buildDayMap(site, total = 90) {
+  const map = {};
+  const dmd = site.dailyMinutesDown || {};
+  for (const [date, mins] of Object.entries(dmd)) {
+    map[date] = mins > 0 ? 'down' : 'up';
+  }
+  // Also scan history yml for richer data
   try {
-    const raw  = fs.readFileSync(file, 'utf8');
-    const lines = raw.split('\n');
-    let cur = {};
-    for (const line of lines) {
-      const m = line.match(/^\s*-?\s*(status|startTime):\s+(.+)$/);
-      if (!m) continue;
-      const [, k, v] = m;
-      if (k === 'status') { if (cur.status) flush(cur); cur = { status: v.trim() }; }
-      else cur[k] = v.trim();
-    }
-    if (cur.status) flush(cur);
-    function flush(e) {
-      if (e.status !== 'down' || !e.startTime) return;
-      try {
-        const diff = Math.floor((Date.now() - new Date(e.startTime)) / 86400000);
-        if (diff >= 0 && diff < total) bars[total - 1 - diff] = 'down';
-      } catch (_) {}
+    const slug = site.slug || slugify(site.name);
+    const raw  = fs.readFileSync(`history/${slug}.yml`, 'utf8');
+    const startMatch = raw.match(/startTime:\s+(.+)/);
+    if (startMatch) {
+      const d = new Date(startMatch[1].trim());
+      if (!isNaN(d)) {
+        const key = d.toISOString().slice(0, 10);
+        if (!map[key]) map[key] = 'down';
+      }
     }
   } catch (_) {}
+  return map;
+}
+
+function buildBars(site, total = 90) {
+  const dayMap = buildDayMap(site, total);
+  const bars   = [];
+  const today  = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = total - 1; i >= 0; i--) {
+    const d   = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    bars.push({ date: key, status: dayMap[key] || 'up', daysAgo: i });
+  }
   return bars;
 }
 
-function sparkline(bars) {
-  return bars.map((s, i) => {
-    const age = bars.length - 1 - i;
-    const lbl = age === 0 ? 'Hoje' : `${age}d atras`;
-    const cls = s === 'down' ? 'bar-down' : s === 'degraded' ? 'bar-deg' : 'bar-up';
-    return `<div class="bar ${cls}" title="${lbl}"></div>`;
-  }).join('');
+function uptimePct(site) {
+  const v = site.uptimeMonth || site.uptimeYear || site.uptime;
+  if (!v && v !== 0) return null;
+  const s = String(v);
+  return s.endsWith('%') ? s : s + '%';
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-function pct(v) { return (v !== undefined && v !== null && v !== '') ? (String(v).endsWith('%') ? v : v + '%') : null; }
-function ms(v)  {
-  if (v === undefined || v === null) return null;
-  const n = Number(v);
-  return n >= 1000 ? (n/1000).toFixed(2) + 's' : n + 'ms';
+// ── Past incidents ─────────────────────────────────────────────────────────────
+// Build last 14 days of incident log
+function buildIncidentDays(allSites, daysBack = 14) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = [];
+
+  for (let i = 0; i < daysBack; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateKey = d.toISOString().slice(0, 10);
+
+    const incidents = [];
+    for (const site of allSites) {
+      const dmd   = site.dailyMinutesDown || {};
+      const mins  = dmd[dateKey];
+      if (mins && Number(mins) > 0) {
+        incidents.push({
+          service: site.name,
+          minutes: Number(mins),
+          url:     site.url,
+        });
+      }
+    }
+
+    days.push({ date: d, dateKey, incidents });
+  }
+  return days;
 }
 
-const LABEL = { up: 'Operacional', down: 'Indisponivel', degraded: 'Degradado' };
-function badge(status) {
-  const lbl = LABEL[status] || LABEL.up;
-  return `<span class="badge badge-${status || 'up'}">${lbl}</span>`;
+function fmtDate(d) {
+  return d.toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
 }
 
-// ── Overall ────────────────────────────────────────────────────────────────────
+function fmtMins(m) {
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)}h ${m % 60}min`;
+}
+
+// ── Overall ───────────────────────────────────────────────────────────────────
 const anyDown     = sites.some(s => s.status === 'down');
 const anyDegraded = sites.some(s => s.status !== 'up' && s.status !== 'down');
 const allUp       = sites.length > 0 && !anyDown && !anyDegraded;
 
-const overall = allUp
-  ? { cls: 'ov-up',   icon: '&#10003;', title: 'Todos os sistemas operacionais',             sub: 'Todos os servicos estao funcionando normalmente.' }
-  : anyDown
-  ? { cls: 'ov-down', icon: '!',        title: 'Instabilidade detectada',                   sub: 'Estamos investigando. Atualizaremos em breve.' }
-  : sites.length === 0
-  ? { cls: 'ov-unk',  icon: '&middot;', title: 'Aguardando primeira verificacao',            sub: 'O monitoramento inicia automaticamente.' }
-  : { cls: 'ov-deg',  icon: '~',        title: 'Alguns sistemas com desempenho reduzido',    sub: 'Servicos podem estar lentos.' };
+const overallText = allUp       ? 'Todos os sistemas operacionais'
+                  : anyDown     ? 'Alguns sistemas indisponiveis'
+                  : sites.length === 0 ? 'Aguardando verificacao inicial'
+                  :               'Alguns sistemas com degradacao';
+const overallCls  = allUp ? 'ov-up' : anyDown ? 'ov-down' : 'ov-deg';
 
-// ── Logo ───────────────────────────────────────────────────────────────────────
-let logoDataUrl = '';
-try {
-  const buf = fs.readFileSync(path.join(__dirname, 'logo.png'));
-  logoDataUrl = `data:image/png;base64,${buf.toString('base64')}`;
-} catch (_) {}
-
-const logoHtml = logoDataUrl
-  ? `<img src="${logoDataUrl}" alt="ICone Academy" width="28" height="28" style="border-radius:6px;object-fit:contain;">`
-  : '';
-
-// ── Health checks section (real data from /health) ────────────────────────────
-function healthSection() {
-  if (!healthFull) return '';
-
-  const overallStatus = (healthFull.status || '').toLowerCase();
-  const isHealthy = overallStatus === 'healthy';
-
-  const checkRows = (healthFull.checks || []).map(c => {
-    const st    = (c.status || '').toLowerCase();
-    const isOk  = st === 'healthy';
-    const isDeg = st === 'degraded';
-    const dotCls  = isOk ? 'dot-up' : isDeg ? 'dot-deg' : 'dot-down';
-    const txt     = isOk ? 'Operacional' : isDeg ? 'Degradado' : 'Problema';
-    const stCls   = isOk ? 'check-ok' : isDeg ? 'check-deg' : 'check-err';
-    const descHtml = c.description ? `<span class="check-desc">${c.description}</span>` : '';
-    return `
-    <div class="check-row">
-      <div class="check-left">
-        <span class="dot ${dotCls}"></span>
-        <span class="check-name">${c.name}</span>
-        ${descHtml}
-      </div>
-      <span class="check-status ${stCls}">${txt}</span>
-    </div>`;
-  }).join('');
-
-  const hasChecks = checkRows.trim().length > 0;
-
-  return `
-  <section class="section">
-    <div class="section-header">
-      <h2 class="section-title">Diagnostico do Backend</h2>
-      <span class="badge badge-${isHealthy ? 'up' : 'down'} badge-sm">${isHealthy ? 'Healthy' : overallStatus}</span>
-    </div>
-    <div class="checks-card">
-      ${hasChecks ? checkRows : '<p class="no-checks">Sem dados de checks retornados pelo /health.</p>'}
-    </div>
-  </section>`;
-}
-
-// ── Service cards ──────────────────────────────────────────────────────────────
-function serviceCard(site) {
-  const st    = site.status || 'up';
-  const slug  = slugify(site.name || site.url);
-  const bars  = buildBars(slug, 60);
-
-  const d1  = pct(site.uptimeDay   ?? site.uptime);
-  const d7  = pct(site.uptimeWeek);
-  const d30 = pct(site.uptimeMonth);
-  const t   = ms(site.timeDay ?? site.time);
-
-  const stats = [
-    d1  ? `<div class="stat"><div class="sv">${d1}</div><div class="sk">Hoje</div></div>` : '',
-    d7  ? `<div class="stat"><div class="sv">${d7}</div><div class="sk">7 dias</div></div>` : '',
-    d30 ? `<div class="stat"><div class="sv">${d30}</div><div class="sk">30 dias</div></div>` : '',
-    t   ? `<div class="stat"><div class="sv">${t}</div><div class="sk">Resposta</div></div>` : '',
-  ].filter(Boolean).join('');
-
-  return `
-  <div class="card">
-    <div class="card-top">
-      <div>
-        <div class="card-name">${site.name || site.url}</div>
-        <a class="card-url" href="${site.url}" target="_blank" rel="noopener">${site.url}</a>
-      </div>
-      ${badge(st)}
-    </div>
-    ${stats ? `<div class="stats">${stats}</div>` : ''}
-    <div class="spark-wrap">
-      <div class="spark">${sparkline(bars)}</div>
-      <div class="spark-leg"><span>60 dias atras</span><span>Hoje</span></div>
-    </div>
-  </div>`;
-}
-
-// ── Incidents ──────────────────────────────────────────────────────────────────
-const downServices = sites.filter(s => s.status === 'down');
-const incidentHtml = downServices.length > 0 ? `
-<section class="section">
-  <h2 class="section-title">Incidente Ativo</h2>
-  ${downServices.map(s => `
-  <div class="incident-card">
-    <div class="incident-row">
-      <span class="incident-pulse"></span>
-      <strong>${s.name}</strong>
-      <span class="incident-tag">Em investigacao</span>
-    </div>
-    <p class="incident-sub">Nosso time foi notificado e esta trabalhando na resolucao.</p>
-  </div>`).join('')}
-</section>` : '';
-
-const now = new Date().toLocaleString('pt-BR', {
+// ── Timestamp ─────────────────────────────────────────────────────────────────
+const nowStr = new Date().toLocaleString('pt-BR', {
   timeZone: 'America/Sao_Paulo',
   day: '2-digit', month: '2-digit', year: 'numeric',
   hour: '2-digit', minute: '2-digit',
 });
 
-// ── HTML ──────────────────────────────────────────────────────────────────────
-const cardsHtml = sites.length > 0
-  ? sites.map(serviceCard).join('\n')
-  : `<div class="card card-empty">Aguardando dados de monitoramento...</div>`;
+// ── Service rows ──────────────────────────────────────────────────────────────
+function statusLabel(s) {
+  return s === 'down' ? 'Indisponivel' : s === 'degraded' ? 'Degradado' : 'Operacional';
+}
 
+function serviceRow(site) {
+  const st    = site.status || 'up';
+  const bars  = buildBars(site, 90);
+  const upt   = uptimePct(site);
+
+  const barsHtml = bars.map(b => {
+    const cls  = b.status === 'down' ? 'b-down' : b.status === 'degraded' ? 'b-deg' : 'b-up';
+    const lbl  = b.daysAgo === 0 ? 'Hoje' : `${b.daysAgo}d atras - ${b.dateKey}`;
+    return `<div class="bar ${cls}" title="${lbl}"></div>`;
+  }).join('');
+
+  const statusCls = st === 'down' ? 'st-down' : st === 'degraded' ? 'st-deg' : 'st-up';
+
+  return `
+  <div class="svc-row">
+    <div class="svc-top">
+      <span class="svc-name">${site.name}</span>
+      <span class="svc-status ${statusCls}">${statusLabel(st)}</span>
+    </div>
+    <div class="spark-wrap">
+      <div class="spark">${barsHtml}</div>
+      <div class="spark-foot">
+        <span>90 dias atras</span>
+        ${upt ? `<span class="upt-pct">${upt} uptime</span>` : ''}
+        <span>Hoje</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Health checks ─────────────────────────────────────────────────────────────
+function healthSection() {
+  if (!healthFull) return '';
+  const overall = (healthFull.status || '').toLowerCase();
+  const isOk    = overall === 'healthy';
+
+  const rows = (healthFull.checks || []).map(c => {
+    const st    = (c.status || '').toLowerCase();
+    const ok    = st === 'healthy';
+    const deg   = st === 'degraded';
+    const dotC  = ok ? 'b-up-dot' : deg ? 'b-deg-dot' : 'b-down-dot';
+    const label = ok ? 'Operacional' : deg ? 'Degradado' : 'Problema';
+    const lCls  = ok ? 'st-up' : deg ? 'st-deg' : 'st-down';
+    const desc  = c.description ? ` <span class="chk-desc">${c.description}</span>` : '';
+    return `<div class="chk-row">
+      <div class="chk-left"><span class="chk-dot ${dotC}"></span><span class="chk-name">${c.name}</span>${desc}</div>
+      <span class="${lCls}" style="font-size:13px;font-weight:600">${label}</span>
+    </div>`;
+  }).join('');
+
+  if (!rows) return '';
+
+  return `
+  <div class="section-gap"></div>
+  <div class="grp-header">
+    <span class="grp-title">Diagnostico do Backend</span>
+    <span class="svc-status ${isOk ? 'st-up' : 'st-down'}" style="font-size:12px">${isOk ? 'Healthy' : overall}</span>
+  </div>
+  <div class="grp-box chk-box">${rows}</div>`;
+}
+
+// ── Incident days ─────────────────────────────────────────────────────────────
+function incidentDaysHtml() {
+  const days = buildIncidentDays(sites, 14);
+  return days.map(day => {
+    const dateLabel = fmtDate(day.date);
+    if (day.incidents.length === 0) {
+      return `<div class="inc-day">
+        <div class="inc-date">${dateLabel}</div>
+        <div class="inc-none">Nenhum incidente registrado.</div>
+      </div>`;
+    }
+    const evts = day.incidents.map(inc => `
+      <div class="inc-evt">
+        <div class="inc-evt-title"><span class="inc-dot"></span> ${inc.service} — Indisponibilidade</div>
+        <div class="inc-evt-body">
+          <div class="inc-line"><span class="inc-tag inc-resolved">Resolvido</span> Servico retornou ao normal apos ${fmtMins(inc.minutes)} de interrupcao.</div>
+        </div>
+      </div>`).join('');
+    return `<div class="inc-day">
+      <div class="inc-date">${dateLabel}</div>
+      ${evts}
+    </div>`;
+  }).join('');
+}
+
+// ── Active incident banner ────────────────────────────────────────────────────
+const activeIncidents = sites.filter(s => s.status === 'down');
+const activeBannerHtml = activeIncidents.length > 0 ? `
+<div class="active-inc">
+  ${activeIncidents.map(s => `
+  <div class="active-inc-row">
+    <span class="pulse-dot"></span>
+    <strong>${s.name}</strong> esta indisponivel — nosso time foi notificado e esta trabalhando na resolucao.
+  </div>`).join('')}
+</div>` : '';
+
+// ── HTML ──────────────────────────────────────────────────────────────────────
 const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="refresh" content="300">
-  <title>Status &mdash; ICone Academy</title>
-  <meta name="description" content="Status em tempo real dos servicos da ICone Academy.">
+  <title>Status — ICone Academy</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --bg:#f7f8fa;
-      --surface:#fff;
-      --border:#e4e7ec;
-      --text:#101828;
-      --muted:#667085;
-      --dim:#98a2b3;
-      --up:#027a48;--up-bg:#ecfdf3;--up-bd:#abefc6;
-      --down:#b42318;--down-bg:#fef3f2;--down-bd:#fecdca;
-      --deg:#b54708;--deg-bg:#fffaeb;--deg-bd:#fedf89;
-      --r:10px;
-    }
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;min-height:100vh}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',Helvetica,sans-serif;background:#fff;color:#111827;font-size:14px;line-height:1.5}
 
-    header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-    .hdr{max-width:860px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
-    .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text)}
+    /* Header */
+    .hdr{border-bottom:1px solid #e5e7eb;background:#fff}
+    .hdr-in{max-width:680px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+    .brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:#111827}
+    .brand img{width:26px;height:26px;border-radius:5px;object-fit:contain}
     .brand-name{font-size:15px;font-weight:700;letter-spacing:-.02em}
-    .brand-sep{color:var(--dim);margin:0 2px}
-    .brand-sub{font-size:14px;color:var(--muted);font-weight:400}
-    .hdr-link{font-size:13px;color:var(--muted);text-decoration:none}
-    .hdr-link:hover{color:var(--text)}
+    .brand-dot{color:#9ca3af;margin:0 2px}
+    .brand-sub{font-size:14px;color:#6b7280;font-weight:400}
+    .hdr-link{font-size:13px;color:#6b7280;text-decoration:none;padding:6px 12px;border:1px solid #e5e7eb;border-radius:6px;transition:background .15s}
+    .hdr-link:hover{background:#f9fafb}
 
-    .page{max-width:860px;margin:0 auto;padding:36px 24px 72px}
+    /* Page */
+    .page{max-width:680px;margin:0 auto;padding:32px 24px 80px}
 
-    .overall{border-radius:var(--r);padding:18px 22px;display:flex;align-items:center;gap:14px;margin-bottom:36px;border:1px solid}
-    .ov-up  {background:#ecfdf3;border-color:#abefc6}
-    .ov-down{background:#fef3f2;border-color:#fecdca}
-    .ov-deg {background:#fffaeb;border-color:#fedf89}
-    .ov-unk {background:var(--surface);border-color:var(--border)}
-    .ov-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
-    .ov-up  .ov-icon{background:#dcfce7;color:#16a34a}
-    .ov-down.ov-icon{background:#fee2e2;color:#dc2626}
-    .ov-deg .ov-icon{background:#fef9c3;color:#ca8a04}
-    .ov-unk .ov-icon{background:var(--border);color:var(--muted)}
-    .ov-body{flex:1}
-    .ov-title{font-size:16px;font-weight:700;margin-bottom:1px}
-    .ov-sub{font-size:13px;color:var(--muted)}
+    /* Overall */
+    .overall{border-radius:10px;padding:20px 22px;margin-bottom:32px;display:flex;align-items:center;gap:14px}
+    .ov-up  {background:#f0fdf4;border:1px solid #bbf7d0}
+    .ov-down{background:#fef2f2;border:1px solid #fecaca}
+    .ov-deg {background:#fffbeb;border:1px solid #fde68a}
+    .ov-unk {background:#f9fafb;border:1px solid #e5e7eb}
+    .ov-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0}
+    .ov-up   .ov-icon{background:#dcfce7;color:#16a34a}
+    .ov-down .ov-icon{background:#fee2e2;color:#dc2626}
+    .ov-deg  .ov-icon{background:#fef3c7;color:#d97706}
+    .ov-unk  .ov-icon{background:#e5e7eb;color:#9ca3af}
+    .ov-text{font-size:18px;font-weight:700;flex:1}
+    .ov-up   .ov-text{color:#15803d}
+    .ov-down .ov-text{color:#dc2626}
+    .ov-deg  .ov-text{color:#d97706}
     .pulse{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-    .ov-up   .pulse{background:#16a34a;animation:p 2s infinite}
-    .ov-down .pulse{background:#dc2626}
-    .ov-deg  .pulse{background:#ca8a04}
-    .ov-unk  .pulse{background:var(--dim)}
-    @keyframes p{0%{box-shadow:0 0 0 0 rgba(22,163,74,.4)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+    .ov-up .pulse{background:#22c55e;animation:pls 2s infinite}
+    .ov-down .pulse{background:#ef4444}
+    .ov-deg  .pulse{background:#f59e0b}
+    @keyframes pls{0%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
 
-    .section{margin-bottom:36px}
-    .section-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-    .section-title{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+    /* Active incident */
+    .active-inc{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px 18px;margin-bottom:24px}
+    .active-inc-row{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#991b1b}
+    .pulse-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;margin-top:4px;animation:pld 1.5s infinite}
+    @keyframes pld{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.45)}50%{box-shadow:0 0 0 6px transparent}}
 
-    .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap;border:1px solid transparent}
-    .badge::before{content:'';width:6px;height:6px;border-radius:50%}
-    .badge-up      {background:var(--up-bg);  color:var(--up);  border-color:var(--up-bd)}
-    .badge-up::before{background:var(--up)}
-    .badge-down    {background:var(--down-bg);color:var(--down);border-color:var(--down-bd)}
-    .badge-down::before{background:var(--down)}
-    .badge-degraded{background:var(--deg-bg); color:var(--deg); border-color:var(--deg-bd)}
-    .badge-degraded::before{background:var(--deg)}
-    .badge-sm{font-size:11px;padding:1px 7px}
+    /* Group */
+    .grp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;padding:0 2px}
+    .grp-title{font-size:13px;font-weight:600;color:#374151}
+    .grp-sub{font-size:12px;color:#9ca3af}
+    .grp-box{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:8px}
+    .section-gap{height:28px}
 
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:8px;transition:box-shadow .15s}
-    .card:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
-    .card-empty{color:var(--muted);font-size:14px;text-align:center;padding:28px}
-    .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
-    .card-name{font-weight:600;font-size:15px;margin-bottom:2px}
-    .card-url{font-size:12px;color:var(--dim);text-decoration:none}
-    .card-url:hover{text-decoration:underline}
+    /* Service row */
+    .svc-row{padding:16px 20px;border-bottom:1px solid #f3f4f6}
+    .svc-row:last-child{border-bottom:none}
+    .svc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .svc-name{font-size:14px;font-weight:600;color:#111827}
+    .svc-status{font-size:13px;font-weight:500}
+    .st-up  {color:#15803d}
+    .st-down{color:#dc2626}
+    .st-deg {color:#d97706}
 
-    .stats{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)}
-    .stat{display:flex;flex-direction:column}
-    .sv{font-size:14px;font-weight:700}
-    .sk{font-size:11px;color:var(--dim);margin-top:1px}
-
-    .spark{display:flex;gap:2px;height:26px;align-items:flex-end}
-    .bar{flex:1;height:100%;border-radius:2px;min-width:2px;cursor:default}
+    /* Sparkline */
+    .spark{display:flex;gap:2px;height:28px}
+    .bar{flex:1;border-radius:2px;min-width:2px;cursor:default;transition:opacity .1s}
     .bar:hover{opacity:.6}
-    .bar-up  {background:#bbf7d0}
-    .bar-down{background:#fca5a5}
-    .bar-deg {background:#fde68a}
-    .spark-leg{display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--dim)}
+    .b-up  {background:#bbf7d0}
+    .b-down{background:#fca5a5}
+    .b-deg {background:#fde68a}
+    .spark-foot{display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:11px;color:#9ca3af}
+    .upt-pct{color:#6b7280;font-weight:500}
 
-    .checks-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-    .check-row{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid var(--border);gap:12px}
-    .check-row:last-child{border-bottom:none}
-    .check-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
-    .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-    .dot-up  {background:#16a34a}
-    .dot-down{background:#dc2626}
-    .dot-deg {background:#ca8a04}
-    .check-name{font-size:14px;font-weight:500;text-transform:capitalize}
-    .check-desc{font-size:12px;color:var(--muted);margin-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .check-status{font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0}
-    .check-ok {color:var(--up)}
-    .check-deg{color:var(--deg)}
-    .check-err{color:var(--down)}
-    .no-checks{padding:16px 20px;font-size:13px;color:var(--muted)}
+    /* Health checks */
+    .chk-box .chk-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #f3f4f6;gap:12px}
+    .chk-box .chk-row:last-child{border-bottom:none}
+    .chk-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+    .chk-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .b-up-dot  {background:#16a34a}
+    .b-down-dot{background:#dc2626}
+    .b-deg-dot {background:#d97706}
+    .chk-name{font-size:13px;font-weight:500;text-transform:capitalize}
+    .chk-desc{font-size:12px;color:#9ca3af;margin-left:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    .incident-card{background:#fef3f2;border:1px solid #fecdca;border-radius:var(--r);padding:14px 18px;margin-bottom:8px}
-    .incident-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:14px}
-    .incident-pulse{width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;animation:pr 1.5s infinite}
-    @keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 6px transparent}}
-    .incident-tag{margin-left:auto;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;background:#fee2e2;color:#b91c1c}
-    .incident-sub{font-size:13px;color:#991b1b;padding-left:18px}
+    /* Incidents */
+    .inc-section-title{font-size:16px;font-weight:700;margin-bottom:20px;margin-top:36px;padding-top:32px;border-top:1px solid #e5e7eb}
+    .inc-day{margin-bottom:24px}
+    .inc-date{font-size:13px;font-weight:600;color:#374151;margin-bottom:8px}
+    .inc-none{font-size:13px;color:#9ca3af;padding-left:0}
+    .inc-evt{border-left:2px solid #e5e7eb;padding-left:14px;margin-bottom:10px}
+    .inc-evt-title{font-size:13px;font-weight:600;color:#111827;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .inc-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;flex-shrink:0}
+    .inc-line{font-size:13px;color:#4b5563;margin-bottom:4px;display:flex;align-items:flex-start;gap:7px}
+    .inc-tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+    .inc-resolved{background:#dcfce7;color:#15803d}
+    .inc-invest  {background:#fee2e2;color:#991b1b}
 
-    footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:12px;color:var(--dim)}
-    footer a{color:var(--muted);text-decoration:none}
+    /* Footer */
+    footer{border-top:1px solid #f3f4f6;padding:24px;text-align:center;font-size:12px;color:#9ca3af}
+    footer a{color:#6b7280;text-decoration:none}
     footer a:hover{text-decoration:underline}
-    .fdot{margin:0 7px;opacity:.5}
+    .fdot{margin:0 7px}
 
-    @media(max-width:560px){.page{padding:20px 14px 56px}.hdr{padding:0 14px}.card-top{flex-wrap:wrap}.stats{gap:12px}}
+    @media(max-width:560px){.page{padding:20px 14px 60px}.hdr-in{padding:0 14px}.spark-foot{font-size:10px}}
   </style>
 </head>
 <body>
-<header>
-  <div class="hdr">
+
+<div class="hdr">
+  <div class="hdr-in">
     <a class="brand" href="https://icone.academy" target="_blank" rel="noopener">
-      ${logoHtml}
+      ${logoDataUrl ? `<img src="${logoDataUrl}" alt="ICone Academy">` : ''}
       <span class="brand-name">ICone Academy</span>
-      <span class="brand-sep">&middot;</span>
+      <span class="brand-dot">&middot;</span>
       <span class="brand-sub">Status</span>
     </a>
     <a class="hdr-link" href="https://icone.academy" target="_blank" rel="noopener">Ir para a plataforma &rarr;</a>
   </div>
-</header>
-<main>
+</div>
+
 <div class="page">
 
-  <div class="overall ${overall.cls}">
-    <div class="ov-icon">${overall.icon}</div>
-    <div class="ov-body">
-      <div class="ov-title">${overall.title}</div>
-      <div class="ov-sub">${overall.sub}</div>
-    </div>
+  <div class="overall ${overallCls}">
+    <div class="ov-icon">${allUp ? '&#10003;' : anyDown ? '!' : sites.length === 0 ? '&middot;' : '~'}</div>
+    <div class="ov-text">${overallText}</div>
     <div class="pulse"></div>
   </div>
 
-  ${incidentHtml}
+  ${activeBannerHtml}
 
-  <section class="section">
-    <p class="section-title">Servicos</p>
-    ${cardsHtml}
-  </section>
+  <div class="grp-header">
+    <span class="grp-title">Servicos</span>
+    <span class="grp-sub">Uptime nos ultimos 90 dias.</span>
+  </div>
+  <div class="grp-box">
+    ${sites.length > 0 ? sites.map(serviceRow).join('') : '<div class="svc-row" style="color:#9ca3af;padding:20px">Aguardando dados...</div>'}
+  </div>
 
   ${healthSection()}
 
+  <h2 class="inc-section-title">Incidentes Recentes</h2>
+  ${incidentDaysHtml()}
+
 </div>
-</main>
+
 <footer>
-  Atualizado em ${now} (BRT)
+  Atualizado em ${nowStr} (BRT)
   <span class="fdot">&middot;</span>
   Monitorado com <a href="https://upptime.js.org" target="_blank" rel="noopener">Upptime</a>
   <span class="fdot">&middot;</span>
   <a href="https://icone.academy" target="_blank" rel="noopener">ICone Academy</a>
 </footer>
+
 </body>
 </html>`;
 
@@ -370,4 +406,3 @@ fs.writeFileSync('_site/CNAME', 'status.icone.academy');
 
 console.log('Site gerado. Servicos:', sites.map(s => `${s.name}:${s.status}`).join(', ') || 'nenhum');
 if (healthFull) console.log('Health checks:', (healthFull.checks || []).map(c => `${c.name}:${c.status}`).join(', '));
-else console.log('health-full.json nao encontrado — secao backend omitida');
