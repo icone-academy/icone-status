@@ -31,6 +31,7 @@ assignees:
 2. Nome: `UPPTIME_ICONE`
 3. Expiration: **No expiration** (ou 1 year — lembre de renovar)
 4. Scopes obrigatórios:
+
    - ✅ `repo` (acesso completo ao repositório)
    - ✅ `workflow` (permissão para criar/atualizar workflows)
 
@@ -81,11 +82,11 @@ TTL:    3600
 
 ## Serviços monitorados
 
-| Serviço | URL | Intervalo |
-|---------|-----|-----------|
-| Plataforma (App) | https://icone.academy | 5 min |
-| API — Liveness | https://api.icone.academy/health/live | 5 min |
-| API — Health Completo | https://api.icone.academy/health | 5 min |
+| Serviço               | URL                                   | Intervalo |
+| --------------------- | ------------------------------------- | --------- |
+| Plataforma (App)      | https://icone.academy                 | 5 min     |
+| API — Liveness        | https://api.icone.academy/health/live | 5 min     |
+| API — Health Completo | https://api.icone.academy/health      | 5 min     |
 
 ---
 
