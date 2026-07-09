@@ -10,11 +10,11 @@
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
-    "time": 2249,
-    "timeDay": 2059,
-    "timeWeek": 2280,
-    "timeMonth": 2342,
-    "timeYear": 2249,
+    "time": 2248,
+    "timeDay": 2005,
+    "timeWeek": 2281,
+    "timeMonth": 2338,
+    "timeYear": 2248,
     "dailyMinutesDown": {}
   },
   {
@@ -22,22 +22,22 @@
     "url": "https://api.icone.academy/health/live",
     "icon": "https://icons.duckduckgo.com/ip3/api.icone.academy.ico",
     "slug": "api-liveness",
-    "status": "down",
-    "uptime": "99.92%",
-    "uptimeDay": "99.97%",
-    "uptimeWeek": "100.00%",
-    "uptimeMonth": "99.86%",
-    "uptimeYear": "99.92%",
+    "status": "up",
+    "uptime": "99.85%",
+    "uptimeDay": "91.63%",
+    "uptimeWeek": "98.80%",
+    "uptimeMonth": "99.59%",
+    "uptimeYear": "99.85%",
     "time": 321,
-    "timeDay": 802,
-    "timeWeek": 756,
-    "timeMonth": 528,
+    "timeDay": 792,
+    "timeWeek": 757,
+    "timeMonth": 529,
     "timeYear": 321,
     "dailyMinutesDown": {
       "2026-03-10": 21,
       "2026-04-09": 54,
       "2026-06-23": 60,
-      "2026-07-09": 0
+      "2026-07-09": 120
     }
   },
   {
@@ -45,23 +45,23 @@
     "url": "https://api.icone.academy/health",
     "icon": "https://icons.duckduckgo.com/ip3/api.icone.academy.ico",
     "slug": "api-health-completo",
-    "status": "down",
-    "uptime": "99.89%",
-    "uptimeDay": "99.98%",
-    "uptimeWeek": "100.00%",
-    "uptimeMonth": "99.86%",
-    "uptimeYear": "99.89%",
+    "status": "up",
+    "uptime": "99.82%",
+    "uptimeDay": "91.65%",
+    "uptimeWeek": "98.81%",
+    "uptimeMonth": "99.59%",
+    "uptimeYear": "99.82%",
     "time": 154,
-    "timeDay": 597,
-    "timeWeek": 578,
-    "timeMonth": 384,
+    "timeDay": 605,
+    "timeWeek": 579,
+    "timeMonth": 385,
     "timeYear": 154,
     "dailyMinutesDown": {
       "2026-03-12": 18,
       "2026-03-25": 68,
       "2026-04-09": 52,
       "2026-06-23": 60,
-      "2026-07-09": 0
+      "2026-07-09": 120
     }
   }
 ]
