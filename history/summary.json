@@ -11,9 +11,9 @@
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
     "time": 2281,
-    "timeDay": 2316,
-    "timeWeek": 2236,
-    "timeMonth": 2369,
+    "timeDay": 2324,
+    "timeWeek": 2216,
+    "timeMonth": 2362,
     "timeYear": 2281,
     "dailyMinutesDown": {}
   },
@@ -22,24 +22,25 @@
     "url": "https://api.icone.academy/health/live",
     "icon": "https://icons.duckduckgo.com/ip3/api.icone.academy.ico",
     "slug": "api-liveness",
-    "status": "up",
+    "status": "down",
     "uptime": "99.82%",
-    "uptimeDay": "100.00%",
-    "uptimeWeek": "99.77%",
+    "uptimeDay": "99.97%",
+    "uptimeWeek": "99.76%",
     "uptimeMonth": "99.64%",
     "uptimeYear": "99.82%",
-    "time": 522,
-    "timeDay": 949,
-    "timeWeek": 932,
-    "timeMonth": 1138,
-    "timeYear": 522,
+    "time": 523,
+    "timeDay": 886,
+    "timeWeek": 924,
+    "timeMonth": 1135,
+    "timeYear": 523,
     "dailyMinutesDown": {
       "2026-03-10": 21,
       "2026-04-09": 54,
       "2026-06-23": 60,
       "2026-07-09": 120,
       "2026-08-05": 135,
-      "2026-08-11": 24
+      "2026-08-11": 24,
+      "2026-08-13": 0
     }
   },
   {
@@ -47,17 +48,17 @@
     "url": "https://api.icone.academy/health",
     "icon": "https://icons.duckduckgo.com/ip3/api.icone.academy.ico",
     "slug": "api-health-completo",
-    "status": "up",
+    "status": "down",
     "uptime": "99.79%",
-    "uptimeDay": "100.00%",
+    "uptimeDay": "99.98%",
     "uptimeWeek": "99.77%",
     "uptimeMonth": "99.64%",
     "uptimeYear": "99.79%",
-    "time": 267,
-    "timeDay": 664,
-    "timeWeek": 671,
+    "time": 269,
+    "timeDay": 628,
+    "timeWeek": 668,
     "timeMonth": 601,
-    "timeYear": 267,
+    "timeYear": 269,
     "dailyMinutesDown": {
       "2026-03-12": 18,
       "2026-03-25": 68,
@@ -65,7 +66,8 @@
       "2026-06-23": 60,
       "2026-07-09": 120,
       "2026-08-05": 134,
-      "2026-08-11": 23
+      "2026-08-11": 23,
+      "2026-08-13": 0
     }
   }
 ]
