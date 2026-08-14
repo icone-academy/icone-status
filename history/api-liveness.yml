@@ -1,7 +1,7 @@
 url: https://api.icone.academy/health/live
-status: up
-code: 200
-responseTime: 817
-lastUpdated: 2026-08-14T18:42:28.336Z
+status: down
+code: 500
+responseTime: 903
+lastUpdated: 2026-08-14T19:42:26.131Z
 startTime: 2026-03-10T17:45:49.387Z
 generator: Upptime <https://github.com/upptime/upptime>
