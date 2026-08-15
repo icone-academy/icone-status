@@ -1,52 +1,65 @@
-# ============================================================
-# Upptime — Configuração de monitoramento da Ícone Academy
-# Docs: https://upptime.js.org/docs/configuration
-# ============================================================
-
-# ⚠️  Preencha com o usuário/org do GitHub onde este repo ficará
-owner: meneeses
+# Upptime remains the availability engine and historical source of truth.
+owner: icone-academy
 repo: icone-status
+user-agent: icone-academy-status
 
-# Assignees para notificações de incidentes (GitHub Issues)
 assignees:
   - meneeses
 
-# ─── Serviços monitorados ────────────────────────────────────
+# Preserve short incidents so the custom page and alert dispatcher can keep a
+# complete, real incident history.
+skipDeleteIssues: true
+
 sites:
+  # The historical names are intentionally preserved because Upptime derives
+  # their slugs from the name (plataforma-app, api-liveness and
+  # api-health-completo).
   - name: Plataforma (App)
-    url: https://icone.academy
+    url: https://www.icone.academy
+    maxResponseTime: 5000
     expectedStatusCodes:
       - 200
 
   - name: API — Liveness
     url: https://api.icone.academy/health/live
+    maxResponseTime: 3000
     expectedStatusCodes:
       - 200
-      - 204
 
   - name: API — Health Completo
-    url: https://api.icone.academy/health
+    url: https://api.icone.academy/health/ready
+    maxResponseTime: 5000
+    expectedStatusCodes:
+      - 200
+    __dangerous__body_degraded: '"status":"degraded"'
+
+  - name: Pagamentos e webhooks
+    url: https://api.icone.academy/health/operations
+    maxResponseTime: 5000
+    expectedStatusCodes:
+      - 200
+    __dangerous__body_degraded: '"status":"degraded"'
+
+  - name: Arquivos
+    url: https://files.icone.academy/health
+    maxResponseTime: 5000
     expectedStatusCodes:
       - 200
 
-# ─── Página de status ────────────────────────────────────────
 status-website:
   cname: status.icone.academy
   name: Ícone Status
-  description: Acompanhe o status em tempo real dos serviços da Ícone Academy
+  description: Disponibilidade dos serviços de produção da Ícone Academy
   theme: light
-  favicon: https://icone.academy/favicon.ico
-  logo: https://icone.academy/logo.png
+  favicon: https://www.icone.academy/favicon.ico
   navbar:
     - title: Plataforma
-      href: https://icone.academy
+      href: https://www.icone.academy
     - title: Suporte
       href: mailto:suporte@icone.academy
-  i18n:
-    footer: >
-      Monitorado com <a href="https://upptime.js.org">Upptime</a> —
-      <a href="https://icone.academy">Ícone Academy</a>
 
-# ─── Notificações ────────────────────────────────────────────
-# Para ativar notificações por e-mail, Slack ou outras integrações,
-# consulte: https://upptime.js.org/docs/notifications
+workflowSchedule:
+  uptime: "*/5 * * * *"
+  responseTime: "0 */6 * * *"
+  graphs: "15 0 * * *"
+  summary: "30 0 * * *"

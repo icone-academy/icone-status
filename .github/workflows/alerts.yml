@@ -1,0 +1,41 @@
+name: Alertas operacionais
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: operational-alert-dispatcher
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Enviar e-mail e Telegram
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: master
+
+      - name: Testar transições e idempotência
+        run: node --test .github/scripts/alerts/dispatcher.test.mjs
+
+      - name: Despachar alertas
+        env:
+          ALERT_TEST: ${{ github.event_name == 'workflow_dispatch' }}
+          ALERT_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
+        run: node .github/scripts/alerts/dispatcher.mjs

@@ -1,54 +1,63 @@
-name: Static Site CI
+name: Publicar status customizado
 
 on:
+  workflow_run:
+    workflows: ["Uptime CI"]
+    types: [completed]
   push:
     branches: [master]
+    paths:
+      - ".github/scripts/status/**"
+      - ".github/scripts/logo.png"
+      - ".github/workflows/static-site.yml"
+      - ".upptimerc.yml"
+      - "CNAME"
   workflow_dispatch:
-  schedule:
-    # Reconstrói a cada hora (30 min após o uptime check)
-    - cron: "30 * * * *"
 
 permissions:
   contents: read
+  issues: read
   pages: write
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: github-pages-status
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
-    name: Build e publicar página de status
+    name: Gerar e publicar página
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout do estado mais recente
+        uses: actions/checkout@v6
+        with:
+          ref: master
 
-      - name: Buscar dados reais do backend
-        run: |
-          curl -sf --max-time 10 https://api.icone.academy/health -o health-full.json \
-            && echo "health-full ok" || echo '{}' > health-full.json
-          curl -sf --max-time 5  https://api.icone.academy/health/live -o health-live.json \
-            && echo "health-live ok" || echo '{}' > health-live.json
-          echo "--- health-full.json ---"
-          cat health-full.json
+      - name: Testar parser e interface
+        run: node --test .github/scripts/status/status.test.mjs
 
-      - name: Gerar HTML da página de status
-        run: node .github/scripts/generate-site.js
+      - name: Buscar incidentes reais nas Issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/status/fetch-incidents.mjs incidents.json
 
-      - name: Setup Pages
+      - name: Gerar site estático
+        run: node .github/scripts/status/generate-site.mjs
+
+      - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
+      - name: Enviar artefato
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
-      - name: Deploy to GitHub Pages
+      - name: Publicar
         id: deploy
         uses: actions/deploy-pages@v4
