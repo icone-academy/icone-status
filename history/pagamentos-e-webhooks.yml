@@ -1,7 +1,7 @@
 url: https://api.icone.academy/health/operations
-status: up
-code: 200
-responseTime: 1844
-lastUpdated: 2026-08-15T03:58:20.381Z
+status: degraded
+code: 503
+responseTime: 8201
+lastUpdated: 2026-08-15T23:02:49.361Z
 startTime: 2026-08-15T03:58:18.535Z
 generator: Upptime <https://github.com/upptime/upptime>
