@@ -1,7 +1,7 @@
 url: https://api.icone.academy/health/ready
 status: degraded
-code: 200
-responseTime: 406
-lastUpdated: 2026-08-15T03:58:16.703Z
+code: 503
+responseTime: 7821
+lastUpdated: 2026-08-15T23:11:53.753Z
 startTime: 2026-03-10T17:45:50.436Z
 generator: Upptime <https://github.com/upptime/upptime>
