@@ -1,4 +1,4 @@
-# Ícone Status
+# ICone Status
 
 Disponibilidade dos serviços de produção da Ícone Academy, monitorada a cada cinco minutos.
 
