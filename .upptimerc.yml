@@ -48,8 +48,8 @@ sites:
 
 status-website:
   cname: status.icone.academy
-  name: Ícone Status
-  description: Disponibilidade dos serviços de produção da Ícone Academy
+  name: ICone Status
+  description: Disponibilidade dos serviços de produção da ICone Academy
   theme: light
   favicon: https://www.icone.academy/favicon.ico
   navbar:

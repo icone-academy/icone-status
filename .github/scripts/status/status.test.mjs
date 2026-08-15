@@ -107,7 +107,11 @@ test("HTML não contém undefined e mantém acentuação e estados acessíveis",
   });
 
   assert.doesNotMatch(html, /undefined/i);
+  assert.doesNotMatch(html, /\u00cdcone/);
   assert.match(html, /Todos os sistemas estão operacionais/);
   assert.match(html, /Histórico de 90 dias/);
+  assert.match(html, /<title>ICone Status<\/title>/);
+  assert.match(html, /srcset="logo-dark\.png"/);
+  assert.match(html, /src="logo-light\.png"/);
   assert.match(html, /prefers-color-scheme|styles\.css/);
 });

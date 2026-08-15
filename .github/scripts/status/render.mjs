@@ -205,20 +205,24 @@ export function renderPage(data) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Disponibilidade e incidentes dos serviços de produção da Ícone Academy.">
+  <meta name="description" content="Disponibilidade e incidentes dos serviços de produção da ICone Academy.">
   <meta name="color-scheme" content="light dark">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
-  <title>Ícone Status</title>
-  <link rel="icon" href="logo.png" type="image/png">
+  <title>ICone Status</title>
+  <link rel="icon" href="logo-light.png" type="image/png" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="logo-dark.png" type="image/png" media="(prefers-color-scheme: dark)">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
   <header class="site-header">
     <div class="shell header-inner">
-      <a class="brand" href="https://www.icone.academy" aria-label="Ícone Academy — página inicial">
-        <img src="logo.png" width="40" height="40" alt="">
-        <span><strong>Ícone</strong><small>Status</small></span>
+      <a class="brand" href="https://www.icone.academy" aria-label="ICone Academy — página inicial">
+        <picture>
+          <source srcset="logo-dark.png" media="(prefers-color-scheme: dark)">
+          <img class="brand-logo" src="logo-light.png" width="40" height="40" alt="">
+        </picture>
+        <span><strong>ICone</strong><small>Status</small></span>
       </a>
       <nav aria-label="Navegação principal">
         <a href="#visao-geral">Visão geral</a>
@@ -233,7 +237,7 @@ export function renderPage(data) {
       <div class="hero-copy">
         <p class="eyebrow">Status dos serviços</p>
         <h1 id="page-title">Operação clara, sem ruído.</h1>
-        <p>Acompanhe a disponibilidade dos produtos e das operações críticas da Ícone Academy.</p>
+        <p>Acompanhe a disponibilidade dos produtos e das operações críticas da ICone Academy.</p>
       </div>
       <div class="overall-card is-${escapeHtml(data.overallStatus)}" role="status">
         <span class="overall-icon" aria-hidden="true"><span></span></span>
@@ -253,7 +257,7 @@ export function renderPage(data) {
 
   <footer class="site-footer">
     <div class="shell footer-inner">
-      <p>© ${escapeHtml(year)} Ícone Academy</p>
+      <p>© ${escapeHtml(year)} ICone Academy</p>
       <p>Disponibilidade verificada a cada cinco minutos com <a href="https://upptime.js.org" target="_blank" rel="noreferrer">Upptime</a>.</p>
     </div>
   </footer>

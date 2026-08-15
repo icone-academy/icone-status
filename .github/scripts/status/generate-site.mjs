@@ -13,7 +13,8 @@ export function generateSite({ root = process.cwd(), now = new Date() } = {}) {
   const html = renderPage(data).replace(/[ \t]+$/gm, "");
   fs.writeFileSync(path.join(output, "index.html"), html, "utf8");
   fs.copyFileSync(path.join(scriptDirectory, "styles.css"), path.join(output, "styles.css"));
-  fs.copyFileSync(path.join(scriptDirectory, "..", "logo.png"), path.join(output, "logo.png"));
+  fs.copyFileSync(path.join(scriptDirectory, "..", "logo-light.png"), path.join(output, "logo-light.png"));
+  fs.copyFileSync(path.join(scriptDirectory, "..", "logo-dark.png"), path.join(output, "logo-dark.png"));
 
   const cname = path.join(root, "CNAME");
   if (fs.existsSync(cname)) fs.copyFileSync(cname, path.join(output, "CNAME"));

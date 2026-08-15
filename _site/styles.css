@@ -113,7 +113,11 @@ button:focus-visible,
   text-decoration: none;
 }
 
-.brand img {
+.brand picture {
+  display: flex;
+}
+
+.brand-logo {
   width: 40px;
   height: 40px;
   object-fit: contain;
@@ -683,9 +687,6 @@ h1 {
       var(--page);
   }
 
-  .brand img {
-    filter: saturate(0.8) brightness(1.05);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
