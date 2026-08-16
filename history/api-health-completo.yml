@@ -1,7 +1,7 @@
 url: https://api.icone.academy/health/ready
-status: down
+status: degraded
 code: 503
-responseTime: 307
-lastUpdated: 2026-08-16T06:04:23.368Z
+responseTime: 9355
+lastUpdated: 2026-08-16T07:22:03.220Z
 startTime: 2026-03-10T17:45:50.436Z
 generator: Upptime <https://github.com/upptime/upptime>
