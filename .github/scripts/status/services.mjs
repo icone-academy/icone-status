@@ -37,6 +37,7 @@ export const SERVICES = [
     description: "Dependências necessárias para atender tráfego",
     group: "infrastructure",
     url: "https://api.icone.academy/health/ready",
+    healthDetails: true,
   },
   {
     slug: "arquivos",
@@ -51,6 +52,7 @@ export const SERVICES = [
     description: "Asaas, webhooks, e-mails e jobs de cobrança",
     group: "operations",
     url: "https://api.icone.academy/health/operations",
+    healthDetails: true,
   },
 ];
 

@@ -15,6 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   issues: read
   pages: write
@@ -46,6 +47,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node .github/scripts/status/fetch-incidents.mjs incidents.json
+
+      - name: Confirmar horário da última verificação
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS_MONITOR_CHECKED_AT: ${{ github.event.workflow_run.updated_at }}
+          STATUS_MONITOR_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: node .github/scripts/status/resolve-monitor-check.mjs monitor-check.json
+
+      - name: Obter componentes públicos afetados
+        run: node .github/scripts/status/fetch-health-details.mjs current-health.json
 
       - name: Gerar site estático
         run: node .github/scripts/status/generate-site.mjs

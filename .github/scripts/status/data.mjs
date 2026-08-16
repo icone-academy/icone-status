@@ -18,12 +18,17 @@ export function parseHistoryYaml(raw) {
   return values;
 }
 
-export function normalizeCurrentStatus(history, now = new Date(), maxAgeMs = MAX_STATUS_AGE_MS) {
+export function normalizeCurrentStatus(
+  history,
+  now = new Date(),
+  maxAgeMs = MAX_STATUS_AGE_MS,
+  checkedAtValue = history?.lastUpdated,
+) {
   if (!history) return "unknown";
 
-  const updatedAt = new Date(history.lastUpdated);
-  const age = now.getTime() - updatedAt.getTime();
-  if (!Number.isFinite(updatedAt.getTime()) || age > maxAgeMs || age < -maxAgeMs) return "unknown";
+  const checkedAt = new Date(checkedAtValue);
+  const age = now.getTime() - checkedAt.getTime();
+  if (!Number.isFinite(checkedAt.getTime()) || age > maxAgeMs || age < -maxAgeMs) return "unknown";
 
   const normalized = String(history.status).toLowerCase();
   if (normalized === "up") return "operational";
@@ -141,7 +146,17 @@ export function deriveOverallStatus(services) {
 }
 
 export function loadStatusData({ root = process.cwd(), now = new Date() } = {}) {
+  const monitorCheckPath = path.join(root, "monitor-check.json");
+  const hasMonitorCheck = fs.existsSync(monitorCheckPath);
+  const monitorCheck = readJson(monitorCheckPath, null);
+  const parsedMonitorCheckedAt = monitorCheck?.checkedAt
+    ? new Date(monitorCheck.checkedAt)
+    : null;
+  const monitorCheckedAt = parsedMonitorCheckedAt && Number.isFinite(parsedMonitorCheckedAt.getTime())
+    ? parsedMonitorCheckedAt
+    : null;
   const summaryItems = readJson(path.join(root, "history", "summary.json"), []);
+  const currentHealth = readJson(path.join(root, "current-health.json"), { services: {} });
   const summaryBySlug = new Map(
     (Array.isArray(summaryItems) ? summaryItems : []).map((item) => [item.slug, item]),
   );
@@ -151,12 +166,18 @@ export function loadStatusData({ root = process.cwd(), now = new Date() } = {}) 
   const services = SERVICES.map((definition) => {
     const history = readHistory(root, definition.slug);
     const summary = summaryBySlug.get(definition.slug) ?? null;
+    const healthDetails = currentHealth?.services?.[definition.slug] ?? null;
+    const historyCheckedAt = history ? new Date(history.lastUpdated) : null;
+    const checkedAt = hasMonitorCheck ? monitorCheckedAt : historyCheckedAt;
     return {
       ...definition,
       history,
       summary,
-      status: normalizeCurrentStatus(history, now),
-      checkedAt: history ? new Date(history.lastUpdated) : null,
+      affectedComponents: Array.isArray(healthDetails?.affectedComponents)
+        ? healthDetails.affectedComponents
+        : [],
+      status: normalizeCurrentStatus(history, now, MAX_STATUS_AGE_MS, checkedAt),
+      checkedAt,
       responseTimeMs: history && Number.isFinite(Number(history.responseTime))
         ? Number(history.responseTime)
         : null,
@@ -170,9 +191,9 @@ export function loadStatusData({ root = process.cwd(), now = new Date() } = {}) 
   const validChecks = services
     .map((service) => service.checkedAt)
     .filter((date) => date && Number.isFinite(date.getTime()));
-  const lastCheckedAt = validChecks.length > 0
+  const lastCheckedAt = monitorCheckedAt ?? (validChecks.length > 0
     ? new Date(Math.max(...validChecks.map((date) => date.getTime())))
-    : null;
+    : null);
 
   return {
     generatedAt: now,
