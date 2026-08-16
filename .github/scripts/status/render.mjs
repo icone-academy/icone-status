@@ -90,6 +90,12 @@ function renderService(service) {
   const uptime = service.uptime90 == null
     ? "Aguardando histórico"
     : `${service.uptime90.toFixed(2).replace(".", ",")}% de uptime`;
+  const affectedComponents = service.status === "degraded" || service.status === "down"
+    ? (service.affectedComponents ?? [])
+    : [];
+  const impact = affectedComponents.length > 0
+    ? `<p class="service-impact"><strong>Componente afetado:</strong> ${escapeHtml(affectedComponents.join(", "))}</p>`
+    : "";
 
   return `
     <article class="service-card" aria-labelledby="service-${escapeHtml(service.slug)}">
@@ -102,6 +108,7 @@ function renderService(service) {
           <span class="status-dot" aria-hidden="true"></span>${escapeHtml(meta.label)}
         </span>
       </div>
+      ${impact}
       ${renderBars(service)}
       <div class="service-meta">
         <span>${escapeHtml(uptime)}</span>

@@ -394,6 +394,16 @@ h1 {
   font-size: 0.86rem;
 }
 
+.service-impact {
+  margin: -10px 0 18px;
+  color: var(--warning);
+  font-size: 0.8rem;
+}
+
+.service-impact strong {
+  color: inherit;
+}
+
 .status-pill {
   min-width: max-content;
   padding: 6px 10px;

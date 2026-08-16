@@ -8,6 +8,12 @@ import {
   parseIncidentIssues,
 } from "./data.mjs";
 import { renderPage } from "./render.mjs";
+import {
+  parseCheckedAt,
+  resolveMonitorCheck,
+  selectLatestSuccessfulRun,
+} from "./resolve-monitor-check.mjs";
+import { sanitizePublicHealth } from "./fetch-health-details.mjs";
 
 const now = new Date("2026-08-15T02:00:00.000Z");
 
@@ -18,6 +24,76 @@ test("normaliza fixtures saudável, degradada, indisponível e desconhecida", ()
   assert.equal(normalizeCurrentStatus({ status: "up", lastUpdated: "2026-08-15T01:44:59Z" }, now), "unknown");
   assert.equal(normalizeCurrentStatus({ status: "up", lastUpdated: "not-a-date" }, now), "unknown");
   assert.equal(normalizeCurrentStatus(null, now), "unknown");
+});
+
+test("usa a execução do monitor como heartbeat sem envelhecer estados estáveis", () => {
+  const staleHistory = { status: "up", lastUpdated: "2026-03-10T17:45:48Z" };
+  assert.equal(
+    normalizeCurrentStatus(staleHistory, now, undefined, "2026-08-15T01:55:00Z"),
+    "operational",
+  );
+  assert.equal(
+    normalizeCurrentStatus(staleHistory, now, undefined, "2026-08-15T01:44:59Z"),
+    "unknown",
+  );
+});
+
+test("resolve heartbeat pelo workflow e seleciona somente execução bem-sucedida", async () => {
+  assert.equal(parseCheckedAt("inválido"), null);
+  const selected = selectLatestSuccessfulRun({
+    workflow_runs: [
+      { id: 1, status: "completed", conclusion: "failure", updated_at: "2026-08-15T01:59:00Z" },
+      { id: 2, status: "completed", conclusion: "success", updated_at: "2026-08-15T01:58:00Z" },
+    ],
+  });
+  assert.equal(selected.runId, 2);
+
+  const resolved = await resolveMonitorCheck({
+    providedCheckedAt: "2026-08-15T01:58:00Z",
+    providedRunId: "2469",
+    fetchImpl: () => { throw new Error("não deveria consultar a rede"); },
+  });
+  assert.deepEqual(resolved, {
+    checkedAt: "2026-08-15T01:58:00.000Z",
+    runId: 2469,
+    source: "workflow_run",
+  });
+
+  const fetched = await resolveMonitorCheck({
+    providedCheckedAt: "",
+    repository: "icone-academy/icone-status",
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        workflow_runs: [
+          { id: 2470, status: "completed", conclusion: "success", updated_at: "2026-08-15T01:59:00Z" },
+        ],
+      }),
+    }),
+  });
+  assert.deepEqual(fetched, {
+    checkedAt: "2026-08-15T01:59:00.000Z",
+    runId: 2470,
+    source: "github_api",
+  });
+});
+
+test("expõe somente labels públicas dos componentes realmente afetados", () => {
+  const health = sanitizePublicHealth({
+    status: "degraded",
+    checkedAt: "2026-08-15T01:58:00Z",
+    components: [
+      { key: "database", label: "Banco de dados", status: "healthy" },
+      { key: "redis", label: "Cache e sessões", status: "degraded", description: "segredo interno" },
+    ],
+  });
+
+  assert.deepEqual(health, {
+    status: "degraded",
+    checkedAt: "2026-08-15T01:58:00.000Z",
+    affectedComponents: ["Cache e sessões"],
+  });
+  assert.equal(sanitizePublicHealth({ status: "unexpected" }), null);
 });
 
 test("recusa histórico inválido em vez de assumir operacional", () => {
@@ -93,6 +169,7 @@ test("HTML não contém undefined e mantém acentuação e estados acessíveis",
     description: "Site e aplicação principal",
     group: "products",
     status: "operational",
+    affectedComponents: [],
     checkedAt: now,
     uptime90: 99.99,
     days,
@@ -114,4 +191,29 @@ test("HTML não contém undefined e mantém acentuação e estados acessíveis",
   assert.match(html, /srcset="logo-dark\.png"/);
   assert.match(html, /src="logo-light\.png"/);
   assert.match(html, /prefers-color-scheme|styles\.css/);
+});
+
+test("HTML explica somente o componente público afetado", () => {
+  const service = {
+    slug: "api-health-completo",
+    name: "Banco de dados e cache",
+    description: "Dependências necessárias para atender tráfego",
+    group: "infrastructure",
+    status: "degraded",
+    affectedComponents: ["Cache e sessões"],
+    checkedAt: now,
+    uptime90: null,
+    days: Array.from({ length: 90 }, () => ({ date: "2026-08-14", status: "degraded" })),
+  };
+  const html = renderPage({
+    generatedAt: now,
+    lastCheckedAt: now,
+    overallStatus: "degraded",
+    services: [service],
+    incidents: [],
+    activeIncidents: [],
+  });
+
+  assert.match(html, /Componente afetado:<\/strong> Cache e sessões/);
+  assert.doesNotMatch(html, /segredo interno|stack trace|exception message/i);
 });
