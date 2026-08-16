@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import {
   buildDaySeries,
@@ -16,6 +17,14 @@ import {
 import { sanitizePublicHealth } from "./fetch-health-details.mjs";
 
 const now = new Date("2026-08-15T02:00:00.000Z");
+
+test("mantém o indicador geral centralizado", () => {
+  const styles = fs.readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+
+  assert.doesNotMatch(styles, /\.overall-card\s+span\s*\{/);
+  assert.match(styles, /\.overall-card\s*>\s*div\s*>\s*span\s*\{/);
+  assert.match(styles, /\.overall-icon\s*\{[\s\S]*?display:\s*grid;/);
+});
 
 test("normaliza fixtures saudável, degradada, indisponível e desconhecida", () => {
   assert.equal(normalizeCurrentStatus({ status: "up", lastUpdated: "2026-08-15T01:55:00Z" }, now), "operational");
