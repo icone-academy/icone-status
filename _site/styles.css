@@ -224,7 +224,7 @@ h1 {
 }
 
 .overall-card strong,
-.overall-card span {
+.overall-card > div > span {
   display: block;
 }
 
