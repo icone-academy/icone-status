@@ -59,7 +59,9 @@ status-website:
       href: mailto:suporte@icone.academy
 
 workflowSchedule:
-  uptime: "*/5 * * * *"
+  # GitHub Actions cron uses UTC. These runs occur at 03h, 09h, 15h and
+  # 21h in America/Sao_Paulo, keeping all endpoint checks in one 6-hour window.
+  uptime: "0 */6 * * *"
   responseTime: "0 */6 * * *"
   graphs: "15 0 * * *"
   summary: "30 0 * * *"
