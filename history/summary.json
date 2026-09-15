@@ -80,20 +80,21 @@
     "url": "https://api.icone.academy/health/operations",
     "icon": "https://icons.duckduckgo.com/ip3/api.icone.academy.ico",
     "slug": "pagamentos-e-webhooks",
-    "status": "up",
+    "status": "down",
     "uptime": "97.87%",
-    "uptimeDay": "100.00%",
+    "uptimeDay": "99.97%",
     "uptimeWeek": "100.00%",
     "uptimeMonth": "97.83%",
     "uptimeYear": "97.87%",
-    "time": 2382,
-    "timeDay": 1579,
-    "timeWeek": 1726,
-    "timeMonth": 2382,
-    "timeYear": 2382,
+    "time": 2373,
+    "timeDay": 1515,
+    "timeWeek": 1712,
+    "timeMonth": 2373,
+    "timeYear": 2373,
     "dailyMinutesDown": {
       "2026-08-16": 892,
-      "2026-08-15": 57
+      "2026-08-15": 57,
+      "2026-09-15": 0
     }
   },
   {
