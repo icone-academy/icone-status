@@ -13,7 +13,7 @@
     "time": 2302,
     "timeDay": 5089,
     "timeWeek": 3401,
-    "timeMonth": 2683,
+    "timeMonth": 2684,
     "timeYear": 2302,
     "dailyMinutesDown": {
       "2026-09-24": 6
@@ -33,7 +33,7 @@
     "time": 585,
     "timeDay": 993,
     "timeWeek": 939,
-    "timeMonth": 960,
+    "timeMonth": 961,
     "timeYear": 585,
     "dailyMinutesDown": {
       "2026-03-10": 21,
@@ -61,7 +61,7 @@
     "time": 455,
     "timeDay": 1569,
     "timeWeek": 1414,
-    "timeMonth": 2385,
+    "timeMonth": 2375,
     "timeYear": 455,
     "dailyMinutesDown": {
       "2026-03-12": 18,
@@ -83,11 +83,11 @@
     "icon": "https://icons.duckduckgo.com/ip3/api.icone.academy.ico",
     "slug": "pagamentos-e-webhooks",
     "status": "down",
-    "uptime": "74.49%",
+    "uptime": "74.02%",
     "uptimeDay": "0.00%",
     "uptimeWeek": "0.00%",
-    "uptimeMonth": "68.01%",
-    "uptimeYear": "74.49%",
+    "uptimeMonth": "67.16%",
+    "uptimeYear": "74.02%",
     "time": 2216,
     "timeDay": 956,
     "timeWeek": 1980,
@@ -96,7 +96,8 @@
     "dailyMinutesDown": {
       "2026-08-16": 892,
       "2026-08-15": 57,
-      "2026-09-24": 1283,
+      "2026-09-25": 219,
+      "2026-09-24": 1440,
       "2026-09-23": 1440,
       "2026-09-22": 1440,
       "2026-09-21": 1440,
@@ -122,7 +123,7 @@
     "time": 267,
     "timeDay": 323,
     "timeWeek": 260,
-    "timeMonth": 275,
+    "timeMonth": 277,
     "timeYear": 267,
     "dailyMinutesDown": {}
   }
